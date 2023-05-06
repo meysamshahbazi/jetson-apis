@@ -9,7 +9,7 @@ V4L2Capture::V4L2Capture()
     devname = "/dev/video0";
     width = 1920;
     height = 1080;
-    pixfmt = V4L2_PIX_FMT_YUYV;
+    pixfmt = V4L2_PIX_FMT_UYVY;
     fd = -1;
 }
 
@@ -66,5 +66,5 @@ bool V4L2Capture::initialize()
 
 bool V4L2Capture::prepare_buffers()
 {
-    
+
 }

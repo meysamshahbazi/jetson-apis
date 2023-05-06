@@ -30,7 +30,6 @@ include_directories(
     cuda
     image
     threads
-    include/libjpeg-8b
 	${CUDA_PATH}/include
 	/usr/include/${TEGRA_ARMABI}
 	/usr/include/libdrm
