@@ -14,6 +14,7 @@
 #include "tegra_drm_nvdc.h"
 #endif
 #include "NvApplicationProfiler.h"
+
 using namespace std;
 
 const static map<unsigned int, NvBufferColorFormat> nv_color_fmt {

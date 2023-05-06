@@ -1,5 +1,6 @@
 #include "v4l2capture.h"
 #include <chrono>
+#include "NvDrmRenderer.h"
 
 /**
  * @brief Construct a new V4L2Capture::V4L2Capture object
@@ -251,7 +252,8 @@ bool V4L2Capture::start_capture()
 bool V4L2Capture::TestCapture()
 {
     struct drm_tegra_hdr_metadata_smpte_2086 metadata;
-    ctx->drm_renderer = NvDrmRenderer::createDrmRenderer("renderer0",
+    NvDrmRenderer *drm_renderer;
+    drm_renderer = NvDrmRenderer::createDrmRenderer("renderer0",
             1920, 1080, 0, 0,
             0, 0, metadata, 0);
 
