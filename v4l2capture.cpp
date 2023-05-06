@@ -1,4 +1,5 @@
 #include "v4l2capture.h"
+#include <chrono>
 
 /**
  * @brief Construct a new V4L2Capture::V4L2Capture object
@@ -230,18 +231,31 @@ bool V4L2Capture::start_capture()
         poll(fds, 1, 5000);
         // printf("im in theread grab\n");
         if ( (fds[0].revents & POLLIN)  /* && ctx->buf_fpga[getFpgaBufIndex(index)] != VID_DISCONNECTED   && ctx->changing_state[index] == 0 */) {
-            
+            auto begin = std::chrono::steady_clock::now();
             if(!grab_frame()) continue;
+            auto end = std::chrono::steady_clock::now();
+            // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+            std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
 
-            // deinterlaceIfNeed(ctx,&v4l2_buf[index],index);
             deinterlace_buf_fd = dmabuff_fd[v4l2_buf.index];
             
-            // if (-1 == NvBufferTransform(ctx->deinterlace_buf_fd[index], ctx->full_hd_fd[index], &transParams)) 
-            //         printf("Failed to convert the buffer to full_hd_fd[i]");
+            // if (-1 == NvBufferTransform(deinterlace_buf_fd, ctx->full_hd_fd[index], &transParams)) 
+                    // printf("Failed to convert the buffer to full_hd_fd[i]");
             
             /* Enqueue camera buffer back to driver */    
             xioctl(cam_fd, VIDIOC_QBUF, &v4l2_buf);
         }
     }
+}
+
+bool V4L2Capture::TestCapture()
+{
+    struct drm_tegra_hdr_metadata_smpte_2086 metadata;
+    ctx->drm_renderer = NvDrmRenderer::createDrmRenderer("renderer0",
+            1920, 1080, 0, 0,
+            0, 0, metadata, 0);
+
+
+    ctx->drm_renderer->setFPS(30);
 }
 

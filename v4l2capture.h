@@ -4,10 +4,16 @@
 #include <string>
 #include <linux/videodev2.h>
 #include <pthread.h>
+#include <map>
 
 #include "sysio.h"
 #include "nvbuf_utils.h"
-#include <map>
+
+#include "tegra_drm.h"
+#ifndef DOWNSTREAM_TEGRA_DRM
+#include "tegra_drm_nvdc.h"
+#endif
+#include "NvApplicationProfiler.h"
 using namespace std;
 
 const static map<unsigned int, NvBufferColorFormat> nv_color_fmt {
@@ -32,6 +38,7 @@ public:
     bool start_stream();
     bool start_capture();
     bool grab_frame();
+    bool TestCapture();
 private:
     const static int V4L2_BUFFERS_NUM {4};
     string devname;
@@ -52,6 +59,10 @@ private:
 
     bool quit{false};
     struct v4l2_buffer v4l2_buf;
+
+
+    ///------------------------------------------------------------------------
+    // for debug only !
 };
 
 #endif
