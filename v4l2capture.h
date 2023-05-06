@@ -12,7 +12,9 @@ class V4L2Capture{
 public:
     V4L2Capture();
     bool initialize();
+    bool prepare_buffers();
 private:
+    const int V4L2_BUFFERS_NUM = 4;
     string devname;
     int fd;
     unsigned int pixfmt;

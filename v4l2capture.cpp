@@ -1,5 +1,9 @@
 #include "v4l2capture.h"
 
+/**
+ * @brief Construct a new V4L2Capture::V4L2Capture object
+ * 
+ */
 V4L2Capture::V4L2Capture() 
 {
     devname = "/dev/video0";
@@ -9,6 +13,12 @@ V4L2Capture::V4L2Capture()
     fd = -1;
 }
 
+/**
+ * @brief 
+ * 
+ * @return true 
+ * @return false 
+ */
 bool V4L2Capture::initialize()
 {
     struct v4l2_format fmt;
@@ -25,17 +35,9 @@ bool V4L2Capture::initialize()
     fmt.fmt.pix.pixelformat = pixfmt;
     fmt.fmt.pix.field = V4L2_FIELD_ANY;
 
-    while (xioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
-        if(EBUSY == errno) { // TODO: handle this better!
-            if (fd > 0)
-                close(fd);
-
-            fd = open(devname.c_str(), O_RDWR  | O_NONBLOCK );
-            if (fd == -1){
-                cout<<"Failed to open camera device: "<<strerror(errno)<< ", "<< errno<<endl;
-                return false;
-            }
-        }
+    if ( xioctl(fd, VIDIOC_S_FMT, &fmt) < 0 ){
+        cout<<"Failed to set camera format: "<<strerror(errno)<< ", "<< errno<<endl;
+        return false;    
     }
 
     /* Get the real format in case the desired is not supported */
@@ -60,4 +62,9 @@ bool V4L2Capture::initialize()
         << " imagesize: " << fmt.fmt.pix.sizeimage << endl;
              
     return true;
+}
+
+bool V4L2Capture::prepare_buffers()
+{
+    
 }
