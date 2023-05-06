@@ -48,17 +48,16 @@ bool V4L2Capture::initialize()
 
     if (fmt.fmt.pix.width != width ||
         fmt.fmt.pix.height != height ||
-        fmt.fmt.pix.pixelformat != pixfmt)
-    {
+        fmt.fmt.pix.pixelformat != pixfmt ) {
         cout<<"The desired format is not supported for node:"<<devname<<endl;
         width = fmt.fmt.pix.width;
         height = fmt.fmt.pix.height;
-        pixfmt =fmt.fmt.pix.pixelformat;
+        pixfmt = fmt.fmt.pix.pixelformat;
     }
 
-    cout<<"Camera ouput format: "<<fmt.fmt.pix.width <<"x"<<fmt.fmt.pix.height
-        <<" stride: "<<fmt.fmt.pix.bytesperline
-        <<" imagesize: "<<fmt.fmt.pix.sizeimage<<endl;
+    cout<< "Camera ouput format: " << fmt.fmt.pix.width << "x" <<fmt.fmt.pix.height
+        << " stride: " << fmt.fmt.pix.bytesperline
+        << " imagesize: " << fmt.fmt.pix.sizeimage << endl;
              
     return true;
 }
