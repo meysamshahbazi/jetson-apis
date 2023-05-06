@@ -66,5 +66,6 @@ bool V4L2Capture::initialize()
 
 bool V4L2Capture::prepare_buffers()
 {
-
+    NvBufferCreateParams input_params = {0};
+    
 }

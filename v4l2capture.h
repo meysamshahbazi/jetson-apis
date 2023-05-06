@@ -16,7 +16,7 @@ public:
     bool initialize();
     bool prepare_buffers();
 private:
-    const int V4L2_BUFFERS_NUM = 4;
+    const static int V4L2_BUFFERS_NUM = 4;
     string devname;
     int fd;
     unsigned int pixfmt;
@@ -25,6 +25,13 @@ private:
     // this deinterlace fd used for possible deinterlacing
     // if video is progressive this contain last fd of g_buff 
     int deinterlace_buf_fd;
+
+    /* User accessible pointer */
+    unsigned char * start[V4L2_BUFFERS_NUM];
+    /* Buffer length */
+    unsigned int size[V4L2_BUFFERS_NUM];
+    /* File descriptor of NvBuffer */
+    int dmabuff_fd[V4L2_BUFFERS_NUM];
 };
 
 #endif

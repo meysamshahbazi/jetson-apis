@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}" ${CMAKE_MODULE_PATH})
 
-project(jutosn_api VERSION 0.0.0 LANGUAGES C CXX)
+project(jetosn_api VERSION 0.0.0 LANGUAGES C CXX)
 
 set(CUDA_PATH /usr/local/cuda-10.2)
 set(TEGRA_ARMABI aarch64-linux-gnu)
@@ -36,7 +36,7 @@ include_directories(
     )
 
 
-file(GLOB CLASS_SRC "classes/*.cpp" "cuda/*.cpp" "cuda/*.cu" "image/*.cpp threads/*.cpp ")
+file(GLOB CLASS_SRC "classes/*.cpp" "cuda/*.cpp" "cuda/*.cu" "image/*.cpp threads/*.cpp" "*.cpp")
 
 link_directories(	
             ${CUDA_PATH}/lib64
@@ -55,7 +55,7 @@ SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
 
 # TARGETS --------------------------------------------------------------------------------------------------------------
 
-cuda_add_executable(${PROJECT_NAME} main.cpp ${CLASS_SRC} logging.cpp commandLine.cpp filesystem.cpp threads/Process.cpp)
+cuda_add_executable(${PROJECT_NAME} main.cpp ${CLASS_SRC} )
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(${CMAKE_MFC_FLAG} )
 target_link_libraries(${PROJECT_NAME}  	-lpthread -lv4l2 -lEGL -lGLESv2 -lX11 -lnvbuf_utils -lnvjpeg -lnvosd -ldrm -lcuda -lcudart ${CUDA_nppicc_LIBRARY})
