@@ -9,7 +9,7 @@
 #include "sysio.h"
 #include "nvbuf_utils.h"
 
-#include "tegra_drm.h"
+// #include "tegra_drm.h"
 #ifndef DOWNSTREAM_TEGRA_DRM
 #include "tegra_drm_nvdc.h"
 #endif
