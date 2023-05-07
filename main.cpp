@@ -6,7 +6,8 @@ int main(int argc, const char * argv[])
     cap0.initialize();
     cap0.prepare_buffers();
     cap0.start_stream();
-    cap0.start_capture();
+    // cap0.start_capture();
+    cap0.TestCapture();
     return 0;
 }
 
