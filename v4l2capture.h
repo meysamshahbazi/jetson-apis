@@ -8,12 +8,15 @@
 
 #include "sysio.h"
 #include "nvbuf_utils.h"
+#include "cuproc.h"
 
 // #include "tegra_drm.h"
 #ifndef DOWNSTREAM_TEGRA_DRM
 #include "tegra_drm_nvdc.h"
 #endif
 #include "NvApplicationProfiler.h"
+
+
 
 using namespace std;
 
@@ -41,6 +44,7 @@ public:
     bool start_capture();
     bool grab_frame();
     bool TestCapture();
+    bool deinterlace();
     static void* func_grab_thread(void* arg);
     static void* func_drm_render(void* arg);
 private:
@@ -66,6 +70,10 @@ private:
 
     pthread_t ptid_drm;
     pthread_t ptid_grab;
+
+    // for deinterlace 
+    CudaProcess cup_cur;
+    CudaProcess cup_de;
     ///------------------------------------------------------------------------
     // for debug only !
 };

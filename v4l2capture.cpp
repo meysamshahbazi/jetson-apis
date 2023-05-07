@@ -2,6 +2,10 @@
 #include <chrono>
 #include "NvDrmRenderer.h"
 
+// for test
+#include "cudaDraw.h"
+
+
 /**
  * @brief Construct a new V4L2Capture::V4L2Capture object
  * 
@@ -9,9 +13,11 @@
 V4L2Capture::V4L2Capture() 
 {
     devname = "/dev/video0";
-    width = 1920;
-    height = 1080;
-    pixfmt = V4L2_PIX_FMT_UYVY;
+    width = 736;
+    height = 288;
+    // the format V4L2_PIX_FMT_UYVY dosnt suppurted with cuGraphicsEGLRegisterImage yet!
+    // https://forums.developer.nvidia.com/t/uyvy-for-cugraphicseglregisterimage-in-32-2-sdk/78634/9
+    pixfmt = V4L2_PIX_FMT_YUYV; 
     cam_fd = -1;
 }
 
@@ -225,13 +231,33 @@ bool V4L2Capture::start_capture()
     pthread_create(&ptid_drm, NULL, (THREADFUNCPTR)&func_drm_render, (void *)this );
 }
 
+
+bool V4L2Capture::deinterlace()
+{
+    if(!isInterleave()){
+        deinterlace_buf_fd = dmabuff_fd[v4l2_buf.index]; 
+        return true;
+    }
+    // 
+    cup_cur.setFd(dmabuff_fd[v4l2_buf.index]);
+    void* ptr_cur = cup_cur.get_img_ptr();
+    cup_de.setFd(deinterlace_buf_fd);
+    void* ptr_de = cup_de.get_img_ptr();
+    
+    cudaDeinterlace( ptr_cur, ptr_de,736, 576);
+    
+    cup_cur.freeImage();
+    cup_de.freeImage();
+    return true;
+
+}
 void* V4L2Capture::func_grab_thread(void* arg)
 {
     // detach the current thread
     // from the calling thread
     pthread_detach(pthread_self());
     V4L2Capture* thiz = (V4L2Capture*) arg;
-    
+
     struct pollfd fds[1];   
     fds[0].events = POLLIN;
 
@@ -240,8 +266,9 @@ void* V4L2Capture::func_grab_thread(void* arg)
         poll(fds, 1, 5000);// TODO add handle return value of poll
         if(fds[0].revents & POLLIN ) {
             if(!(thiz->grab_frame() )) continue;
-            // DO it with seprate functiondeinterlaceIfNeed
-            thiz->deinterlace_buf_fd = thiz->dmabuff_fd[thiz->v4l2_buf.index];           
+            // DO it with seprate function deinterlaceIfNeed
+            // thiz->deinterlace_buf_fd = thiz->dmabuff_fd[thiz->v4l2_buf.index];           
+            thiz->deinterlace();
             /* Enqueue camera buffer back to driver */    
             if(xioctl(thiz->cam_fd, VIDIOC_QBUF, &thiz->v4l2_buf) < 0) {
                 cout<<"Failed to enqueue buffers: "<<strerror(errno)<< ", "<< errno<<endl;
@@ -252,7 +279,6 @@ void* V4L2Capture::func_grab_thread(void* arg)
     // exit the current thread
     pthread_exit(NULL);
 }
-
 
 void* V4L2Capture::func_drm_render(void* arg)
 {
@@ -277,6 +303,7 @@ void* V4L2Capture::func_drm_render(void* arg)
     cParams.layout = NvBufferLayout_Pitch;
     cParams.payloadType = NvBufferPayload_SurfArray;
     cParams.nvbuf_tag = NvBufferTag_NONE;
+
     /* Create pitch linear buffers for renderring */
     for (int index = 0; index < NUM_Render_Buffers; index++) {
         if (-1 == NvBufferCreateEx(&render_fd_arr[index], &cParams) ){
@@ -287,6 +314,7 @@ void* V4L2Capture::func_drm_render(void* arg)
 
 
     int full_hd_fd;
+    cParams.colorFormat = nv_color_fmt.at(thiz->pixfmt);
     if (-1 == NvBufferCreateEx(&full_hd_fd, &cParams)) {
         cout<<"Failed to create buffers "<<endl;
             return NULL;
@@ -302,6 +330,10 @@ void* V4L2Capture::func_drm_render(void* arg)
     transParams.transform_flag = NVBUFFER_TRANSFORM_FILTER;
     transParams.transform_filter = NvBufferTransform_Filter_Nicest;
 
+
+    CudaProcess cup{full_hd_fd};
+    
+
     while (!thiz->quit) {
         if (render_cnt < NUM_Render_Buffers) {
             render_fd = render_fd_arr[render_cnt];
@@ -311,13 +343,23 @@ void* V4L2Capture::func_drm_render(void* arg)
             render_fd = drm_renderer->dequeBuffer();
         }
 
-        auto begin = std::chrono::steady_clock::now();
         
-        if (-1 == NvBufferTransform(thiz->deinterlace_buf_fd, render_fd, &transParams)) // A10 ms delay
+        if (-1 == NvBufferTransform(thiz->deinterlace_buf_fd, full_hd_fd, &transParams)) // A10 ms delay
             printf("Failed to convert the buffer render_fd\n");
+
+
+        auto begin = std::chrono::steady_clock::now();
+        cup.setFd(full_hd_fd);
+        void* ptr = cup.get_img_ptr();
+        cudaDrawLine(ptr, ptr,1920, 1080, IMAGE_YUYV, 960, 5, 960, 1075, make_float4(255.0f,0.0f,0.0f,255.0f), 10 );
+        cup.freeImage();
 
         auto end = std::chrono::steady_clock::now();
         std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+        
+        if (-1 == NvBufferTransform(full_hd_fd, render_fd, &transParams)) // A10 ms delay
+            printf("Failed to convert the buffer render_fd\n");
+
 
         drm_renderer->enqueBuffer(render_fd);
     

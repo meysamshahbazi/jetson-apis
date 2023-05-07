@@ -1,3 +1,6 @@
+#ifndef _CUPROC_H_
+#define _CUPROC_H_
+
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include "nvbuf_utils.h"
@@ -12,6 +15,7 @@ using namespace std;
 class CudaProcess
 {
 public:
+    CudaProcess();
     CudaProcess(int fd);
     ~CudaProcess();
     void* get_img_ptr();
@@ -24,3 +28,5 @@ private:
     CUeglFrame eglFrame;
     CUgraphicsResource pResource = NULL;
 };
+
+#endif

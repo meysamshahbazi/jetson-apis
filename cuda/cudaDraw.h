@@ -46,4 +46,7 @@ cudaError_t cudaDrawLine( T* image, size_t width, size_t height,
 	return cudaDrawLine(image, width, height, imageFormatFromType<T>(), x1, y1, x2, y2, color, line_width); 
 }	
 
+
+
+cudaError_t cudaDeinterlace( void* input_cur, void* output, size_t width, size_t height);
 #endif
