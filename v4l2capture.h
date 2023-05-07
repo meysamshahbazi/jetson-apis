@@ -27,6 +27,7 @@ const static map<unsigned int, NvBufferColorFormat> nv_color_fmt {
         {V4L2_PIX_FMT_YUV420M, NvBufferColorFormat_YUV420},
     };
 
+
 class V4L2Capture{
     
 public:
@@ -40,6 +41,8 @@ public:
     bool start_capture();
     bool grab_frame();
     bool TestCapture();
+    static void* func_grab_thread(void* arg);
+    static void* func_drm_render(void* arg);
 private:
     const static int V4L2_BUFFERS_NUM {4};
     string devname;
@@ -61,7 +64,8 @@ private:
     bool quit{false};
     struct v4l2_buffer v4l2_buf;
 
-
+    pthread_t ptid_drm;
+    pthread_t ptid_grab;
     ///------------------------------------------------------------------------
     // for debug only !
 };

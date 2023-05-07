@@ -8,7 +8,7 @@
  */
 V4L2Capture::V4L2Capture() 
 {
-    devname = "/dev/video2";
+    devname = "/dev/video0";
     width = 1920;
     height = 1080;
     pixfmt = V4L2_PIX_FMT_UYVY;
@@ -219,52 +219,63 @@ bool V4L2Capture::grab_frame()
 
 bool V4L2Capture::start_capture()
 {
-    NvBufferTransformParams transParams;
-    /* Init the NvBufferTransformParams */
-    memset(&transParams, 0, sizeof(transParams));
-    transParams.transform_flag = NVBUFFER_TRANSFORM_FILTER;
-    transParams.transform_filter = NvBufferTransform_Filter_Bilinear;
+    typedef void * (*THREADFUNCPTR)(void *);
     
+    int err = pthread_create(&ptid_grab, NULL, (THREADFUNCPTR)&func_grab_thread, (void *)this );
+    if (err)
+    {
+        std::cout << "Thread creation failed : " << strerror(err);
+        return false;
+    }
+    pthread_create(&ptid_drm, NULL, (THREADFUNCPTR)&func_drm_render, (void *)this );
+}
+
+void* V4L2Capture::func_grab_thread(void* arg)
+{
+    // detach the current thread
+    // from the calling thread
+    pthread_detach(pthread_self());
+    V4L2Capture* thiz = (V4L2Capture*) arg;
+
+
     struct pollfd fds[1];   
     fds[0].events = POLLIN;
 
-    while (!quit) {
-        fds[0].fd = cam_fd;
-        poll(fds, 1, 5000);
-        // printf("im in theread grab\n");
-        if ( (fds[0].revents & POLLIN)  /* && ctx->buf_fpga[getFpgaBufIndex(index)] != VID_DISCONNECTED   && ctx->changing_state[index] == 0 */) {
-            auto begin = std::chrono::steady_clock::now();
-            if(!grab_frame()) continue;
-            auto end = std::chrono::steady_clock::now();
-            // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-            std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
-
-            deinterlace_buf_fd = dmabuff_fd[v4l2_buf.index];
-            
-            // if (-1 == NvBufferTransform(deinterlace_buf_fd, ctx->full_hd_fd[index], &transParams)) 
-                    // printf("Failed to convert the buffer to full_hd_fd[i]");
-            
+    while (!thiz->quit) {
+        fds[0].fd = thiz->cam_fd;
+        poll(fds, 1, 5000);// TODO add handle return value of poll
+        if(fds[0].revents & POLLIN ) {
+            if(!(thiz->grab_frame() )) continue;
+            // DO it with seprate functiondeinterlaceIfNeed
+            thiz->deinterlace_buf_fd = thiz->dmabuff_fd[thiz->v4l2_buf.index];           
             /* Enqueue camera buffer back to driver */    
-            if(xioctl(cam_fd, VIDIOC_QBUF, &v4l2_buf) < 0) {
+            if(xioctl(thiz->cam_fd, VIDIOC_QBUF, &thiz->v4l2_buf) < 0) {
                 cout<<"Failed to enqueue buffers: "<<strerror(errno)<< ", "<< errno<<endl;
-                return false;
+                // return;
             }
         }
     }
+    // exit the current thread
+    pthread_exit(NULL);
 }
 
 
-bool V4L2Capture::TestCapture()
+void* V4L2Capture::func_drm_render(void* arg)
 {
 
-    #define NUM_Render_Buffers 2
+    pthread_detach(pthread_self());
+    
+    V4L2Capture *thiz = (V4L2Capture *)arg;
+
+    #define NUM_Render_Buffers 4
 
     int render_fd_arr[NUM_Render_Buffers];
 
     struct drm_tegra_hdr_metadata_smpte_2086 metadata;
     NvDrmRenderer *drm_renderer;
     drm_renderer = NvDrmRenderer::createDrmRenderer("renderer0", 1920, 1080, 0, 0, 0, 0, metadata, 0);
-    drm_renderer->setFPS(30);
+    drm_renderer->setFPS(25);
+
 
     NvBufferCreateParams cParams = {0};
     cParams.colorFormat = nv_color_fmt.at(V4L2_PIX_FMT_UYVY); // NvBufferColorFormat_NV12;// nvbuf_set_colorspace(format.fmt.pix_mp.pixelformat,
@@ -278,7 +289,7 @@ bool V4L2Capture::TestCapture()
     for (int index = 0; index < NUM_Render_Buffers; index++) {
         if (-1 == NvBufferCreateEx(&render_fd_arr[index], &cParams) ){
             cout<<"Failed to create buffers "<<endl;
-            return false;
+            return NULL;
         }
     }
 
@@ -286,7 +297,7 @@ bool V4L2Capture::TestCapture()
     int full_hd_fd;
     if (-1 == NvBufferCreateEx(&full_hd_fd, &cParams)) {
         cout<<"Failed to create buffers "<<endl;
-            return false;
+            return NULL;
     }
 
     drm_renderer->enableProfiling();
@@ -296,62 +307,41 @@ bool V4L2Capture::TestCapture()
     NvBufferTransformParams transParams;
     /* Init the NvBufferTransformParams */
     memset(&transParams, 0, sizeof(transParams));
-    transParams.transform_flag = NVBUFFER_TRANSFORM_CROP_SRC;
+    transParams.transform_flag = NVBUFFER_TRANSFORM_FILTER;
     transParams.transform_filter = NvBufferTransform_Filter_Nicest;
 
-    struct pollfd fds[1];   
-    fds[0].events = POLLIN;
 
-
-    while (!quit) {
-        
-
-        fds[0].fd = cam_fd;
-        poll(fds, 1, 5000);
-        if ( (fds[0].revents & POLLIN) ) {
-            
-            if(!grab_frame()) continue;
-
-            deinterlace_buf_fd = dmabuff_fd[v4l2_buf.index];
-            
-            // if (-1 == NvBufferTransform(deinterlace_buf_fd, ctx->full_hd_fd[index], &transParams)) 
-                    // printf("Failed to convert the buffer to full_hd_fd[i]");
-            
-            /* Enqueue camera buffer back to driver */    
-            if(xioctl(cam_fd, VIDIOC_QBUF, &v4l2_buf) < 0) {
-                cout<<"Failed to enqueue buffers: "<<strerror(errno)<< ", "<< errno<<endl;
-                return false;
-            }
-            
-
-
-            if (render_cnt < NUM_Render_Buffers) {
-                render_fd = render_fd_arr[render_cnt];
-                render_cnt++;
-            } 
-            else {
-                render_fd = drm_renderer->dequeBuffer();
-            }
-
-            auto begin = std::chrono::steady_clock::now();
-
-
-            if (-1 == NvBufferTransform(deinterlace_buf_fd, full_hd_fd, &transParams)) 
-                printf("Failed to convert the buffer deinterlace_buf_fd to full_hd_fd[i]");
-
-            if (-1 == NvBufferTransform(full_hd_fd, render_fd, &transParams)) 
-                printf("Failed to convert the buffer render_fd");
-            
-
-            auto end = std::chrono::steady_clock::now();
-            std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
-
-            drm_renderer->enqueBuffer(render_fd);
+    while (!thiz->quit) {
+        if (render_cnt < NUM_Render_Buffers) {
+            render_fd = render_fd_arr[render_cnt];
+            render_cnt++;
+        } 
+        else {
+            render_fd = drm_renderer->dequeBuffer();
         }
+
+        // auto begin = std::chrono::steady_clock::now();
+
+
+        // if (-1 == NvBufferTransform(deinterlace_buf_fd, full_hd_fd, &transParams)) 
+        //     printf("Failed to convert the buffer deinterlace_buf_fd to full_hd_fd[i]\n");
+
+        // if (-1 == NvBufferTransform(full_hd_fd, render_fd, &transParams)) 
+        //     printf("Failed to convert the buffer render_fd");
+        
+        if (-1 == NvBufferTransform(thiz->deinterlace_buf_fd, render_fd, &transParams)) 
+            printf("Failed to convert the buffer render_fd\n");
+
+        // auto end = std::chrono::steady_clock::now();
+        // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+
+        drm_renderer->enqueBuffer(render_fd);
+    
     }
 
     drm_renderer->printProfilingStats();
-    return true;
+    
+    pthread_exit(NULL);
 
 }
 
