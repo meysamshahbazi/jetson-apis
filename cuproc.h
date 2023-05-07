@@ -12,7 +12,7 @@ using namespace std;
 class CudaProcess
 {
 public:
-    CudaProcess();
+    CudaProcess(int fd);
     ~CudaProcess();
     void* get_img_ptr();
     void freeImage();

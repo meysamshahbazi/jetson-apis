@@ -1,4 +1,6 @@
 #include "v4l2capture.h"
+#include "cuproc.h"
+
 
 int main(int argc, const char * argv[])
 {

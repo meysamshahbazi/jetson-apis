@@ -3,8 +3,9 @@
 /**
  * @brief Construct a new Cuda Process:: Cuda Process object
  * 
+ * @param fd 
  */
-CudaProcess::CudaProcess()
+CudaProcess::CudaProcess(int fd) :fd{fd}
 {
 
 }
