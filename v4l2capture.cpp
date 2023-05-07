@@ -221,12 +221,7 @@ bool V4L2Capture::start_capture()
 {
     typedef void * (*THREADFUNCPTR)(void *);
     
-    int err = pthread_create(&ptid_grab, NULL, (THREADFUNCPTR)&func_grab_thread, (void *)this );
-    if (err)
-    {
-        std::cout << "Thread creation failed : " << strerror(err);
-        return false;
-    }
+    pthread_create(&ptid_grab, NULL, (THREADFUNCPTR)&func_grab_thread, (void *)this );
     pthread_create(&ptid_drm, NULL, (THREADFUNCPTR)&func_drm_render, (void *)this );
 }
 
@@ -236,8 +231,7 @@ void* V4L2Capture::func_grab_thread(void* arg)
     // from the calling thread
     pthread_detach(pthread_self());
     V4L2Capture* thiz = (V4L2Capture*) arg;
-
-
+    
     struct pollfd fds[1];   
     fds[0].events = POLLIN;
 
@@ -262,7 +256,6 @@ void* V4L2Capture::func_grab_thread(void* arg)
 
 void* V4L2Capture::func_drm_render(void* arg)
 {
-
     pthread_detach(pthread_self());
     
     V4L2Capture *thiz = (V4L2Capture *)arg;
@@ -278,13 +271,12 @@ void* V4L2Capture::func_drm_render(void* arg)
 
 
     NvBufferCreateParams cParams = {0};
-    cParams.colorFormat = nv_color_fmt.at(V4L2_PIX_FMT_UYVY); // NvBufferColorFormat_NV12;// nvbuf_set_colorspace(format.fmt.pix_mp.pixelformat,
-
+    cParams.colorFormat = nv_color_fmt.at(V4L2_PIX_FMT_UYVY);
     cParams.width = 1920;
     cParams.height = 1080;
     cParams.layout = NvBufferLayout_Pitch;
     cParams.payloadType = NvBufferPayload_SurfArray;
-    cParams.nvbuf_tag = NvBufferTag_VIDEO_DEC;
+    cParams.nvbuf_tag = NvBufferTag_NONE;
     /* Create pitch linear buffers for renderring */
     for (int index = 0; index < NUM_Render_Buffers; index++) {
         if (-1 == NvBufferCreateEx(&render_fd_arr[index], &cParams) ){
@@ -310,7 +302,6 @@ void* V4L2Capture::func_drm_render(void* arg)
     transParams.transform_flag = NVBUFFER_TRANSFORM_FILTER;
     transParams.transform_filter = NvBufferTransform_Filter_Nicest;
 
-
     while (!thiz->quit) {
         if (render_cnt < NUM_Render_Buffers) {
             render_fd = render_fd_arr[render_cnt];
@@ -320,20 +311,13 @@ void* V4L2Capture::func_drm_render(void* arg)
             render_fd = drm_renderer->dequeBuffer();
         }
 
-        // auto begin = std::chrono::steady_clock::now();
-
-
-        // if (-1 == NvBufferTransform(deinterlace_buf_fd, full_hd_fd, &transParams)) 
-        //     printf("Failed to convert the buffer deinterlace_buf_fd to full_hd_fd[i]\n");
-
-        // if (-1 == NvBufferTransform(full_hd_fd, render_fd, &transParams)) 
-        //     printf("Failed to convert the buffer render_fd");
+        auto begin = std::chrono::steady_clock::now();
         
-        if (-1 == NvBufferTransform(thiz->deinterlace_buf_fd, render_fd, &transParams)) 
+        if (-1 == NvBufferTransform(thiz->deinterlace_buf_fd, render_fd, &transParams)) // A10 ms delay
             printf("Failed to convert the buffer render_fd\n");
 
-        // auto end = std::chrono::steady_clock::now();
-        // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+        auto end = std::chrono::steady_clock::now();
+        std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
 
         drm_renderer->enqueBuffer(render_fd);
     
@@ -343,5 +327,69 @@ void* V4L2Capture::func_drm_render(void* arg)
     
     pthread_exit(NULL);
 
+}
+
+
+bool V4L2Capture::TestCapture()
+{
+    int render_fd_arr[NUM_Render_Buffers];
+    struct drm_tegra_hdr_metadata_smpte_2086 metadata;
+    NvDrmRenderer *drm_renderer;
+    drm_renderer = NvDrmRenderer::createDrmRenderer("renderer0", 1920, 1080, 0, 0, 0, 0, metadata, 0);
+    drm_renderer->setFPS(25);
+
+    NvBufferCreateParams cParams = {0};
+    cParams.colorFormat = nv_color_fmt.at(V4L2_PIX_FMT_UYVY);
+    cParams.width = 1920;
+    cParams.height = 1080;
+    cParams.layout = NvBufferLayout_Pitch;
+    cParams.payloadType = NvBufferPayload_SurfArray;
+    cParams.nvbuf_tag = NvBufferTag_NONE;
+    /* Create pitch linear buffers for renderring */
+    for (int index = 0; index < NUM_Render_Buffers; index++) {
+        if (-1 == NvBufferCreateEx(&render_fd_arr[index], &cParams) ){
+            cout<<"Failed to create buffers "<<endl;
+            return NULL;
+        }
+    }
+
+    int full_hd_fd;
+    if (-1 == NvBufferCreateEx(&full_hd_fd, &cParams)) {
+        cout<<"Failed to create buffers "<<endl;
+            return NULL;
+    }
+
+    drm_renderer->enableProfiling();
+    int render_fd;
+    int render_cnt = 0;
+
+    NvBufferTransformParams transParams;
+    /* Init the NvBufferTransformParams */
+    memset(&transParams, 0, sizeof(transParams));
+    transParams.transform_flag = NVBUFFER_TRANSFORM_FILTER;
+    transParams.transform_filter = NvBufferTransform_Filter_Nicest;
+
+    while (!quit) {
+        if (render_cnt < NUM_Render_Buffers) {
+            render_fd = render_fd_arr[render_cnt];
+            render_cnt++;
+        } 
+        else {
+            render_fd = drm_renderer->dequeBuffer();
+        }
+
+        auto begin = std::chrono::steady_clock::now();
+        
+        if (-1 == NvBufferTransform(deinterlace_buf_fd, render_fd, &transParams)) // A10 ms delay
+            printf("Failed to convert the buffer render_fd\n");
+
+        auto end = std::chrono::steady_clock::now();
+        std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+
+        drm_renderer->enqueBuffer(render_fd);
+    
+    }
+
+    drm_renderer->printProfilingStats(); 
 }
 
