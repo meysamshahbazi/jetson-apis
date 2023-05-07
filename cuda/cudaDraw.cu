@@ -10,6 +10,19 @@ template<typename T> inline __device__ __host__ T sqr(T x) 				    { return x*x;
 inline __device__ __host__ float dist2(float x1, float y1, float x2, float y2) { return sqr(x1-x2) + sqr(y1-y2); }
 inline __device__ __host__ float dist(float x1, float y1, float x2, float y2)  { return sqrtf(dist2(x1,y1,x2,y2)); }
 
+//----------------------------------------------------------------------------
+// Line drawing (find if the distance to the line <= line_width)
+// Distance from point to line segment - https://stackoverflow.com/a/1501725
+//----------------------------------------------------------------------------
+inline __device__ float lineDistanceSquared(float x, float y, float x1, float y1, float x2, float y2) 
+{
+	const float d = dist2(x1, y1, x2, y2);
+	const float t = ((x-x1) * (x2-x1) + (y-y1) * (y2-y1)) / d;
+	const float u = MAX(0, MIN(1, t));
+	
+	return dist2(x, y, x1 + u * (x2 - x1), y1 + u * (y2 - y1));
+}
+
 
 
 template<typename T>
