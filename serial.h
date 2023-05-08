@@ -13,9 +13,17 @@
 #include <poll.h>
 #include <termios.h>
 #include <string.h>
+#include <iostream>
+
+using namespace std;
+
 
 class Serial {
+public:
     Serial();
+    bool init(const string& device , unsigned int baud);
+private:
+    int fd;
 };
 
 #endif
