@@ -41,9 +41,6 @@ __global__ void gpuDrawLine( T* img, int imgWidth, int imgHeight, int offset_x, 
 	}
 }
 
-
-
-
 template<typename T>
 __global__ void gpuDrawLineYUYV( T* img, int imgWidth, int imgHeight, int offset_x, int offset_y, 
 int x1, int y1, int x2, int y2, uint8_t color_y,uint8_t color_u,uint8_t color_v, float line_width2 ) 
@@ -56,17 +53,6 @@ int x1, int y1, int x2, int y2, uint8_t color_y,uint8_t color_u,uint8_t color_v,
 
 	if( lineDistanceSquared(x, y, x1, y1, x2, y2) <= line_width2 )
 	{
-		// const int idx = y * imgWidth + x;
-		
-		// img[idx] = cudaAlphaBlend(img[idx], color);
-
-
-		// img[y*2*imgWidth+4*(x/2)+0] = color_u;
-		// img[y*2*imgWidth+4*(x/2)+1] = color_y;
-		// img[y*2*imgWidth+4*(x/2)+2] = color_v;
-		// img[y*2*imgWidth+4*(x/2)+3] = color_y;
-
-
 		img[y*2*imgWidth+2*x] = color_y;
 		img[y*2*imgWidth+4*(x/2)+1] = color_u;
 		img[y*2*imgWidth+4*(x/2)+3] = color_v;
