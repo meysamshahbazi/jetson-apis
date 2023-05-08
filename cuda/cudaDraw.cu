@@ -56,7 +56,25 @@ __global__ void gpuDrawLine( T* img, int imgWidth, int imgHeight, int offset_x, 
 		img[idx] = cudaAlphaBlend(img[idx], color);
 	}
 }
-
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ * @param img 
+ * @param imgWidth 
+ * @param imgHeight 
+ * @param offset_x 
+ * @param offset_y 
+ * @param x1 
+ * @param y1 
+ * @param x2 
+ * @param y2 
+ * @param color_y 
+ * @param color_u 
+ * @param color_v 
+ * @param line_width2 
+ * @return __global__ 
+ */
 template<typename T>
 __global__ void gpuDrawLineYUYV( T* img, int imgWidth, int imgHeight, int offset_x, int offset_y, 
 int x1, int y1, int x2, int y2, uint8_t color_y,uint8_t color_u,uint8_t color_v, float line_width2 ) 
