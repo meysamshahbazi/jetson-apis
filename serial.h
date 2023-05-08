@@ -23,9 +23,8 @@ public:
     Serial();
     Serial(const string& device , unsigned int baud);
     bool init();
-    int getFd(){return fd};
-    virtual bool handleNewPacket();
-private:
+    // virtual bool handleNewPacket();
+protected:
     int fd;
     string device;
     unsigned int baud;
