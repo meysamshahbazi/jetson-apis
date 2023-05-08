@@ -141,7 +141,3 @@ Log::Level Log::LevelFromStr( const char* str )
 
 	return DEFAULT;
 }
-
-
-
-	

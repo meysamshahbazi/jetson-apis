@@ -226,7 +226,6 @@ bool V4L2Capture::grab_frame()
 
 bool V4L2Capture::start_capture()
 {
-    typedef void * (*THREADFUNCPTR)(void *);
     
     pthread_create(&ptid_grab, NULL, (THREADFUNCPTR)&func_grab_thread, (void *)this );
     pthread_create(&ptid_drm, NULL, (THREADFUNCPTR)&func_drm_render, (void *)this );

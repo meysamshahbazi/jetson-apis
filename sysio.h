@@ -13,4 +13,6 @@
 
 int xioctl(int fh, int request, void *arg);
 
+typedef void * (*THREADFUNCPTR)(void *);
+
 #endif
