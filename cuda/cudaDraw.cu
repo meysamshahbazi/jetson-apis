@@ -24,7 +24,23 @@ inline __device__ float lineDistanceSquared(float x, float y, float x1, float y1
 }
 
 
-
+/**
+ * @brief 	
+ * 
+ * @tparam T 
+ * @param img 
+ * @param imgWidth 
+ * @param imgHeight 
+ * @param offset_x 
+ * @param offset_y 
+ * @param x1 
+ * @param y1 
+ * @param x2 
+ * @param y2 
+ * @param color 
+ * @param line_width2 
+ * @return __global__ 
+ */
 template<typename T>
 __global__ void gpuDrawLine( T* img, int imgWidth, int imgHeight, int offset_x, int offset_y, int x1, int y1, int x2, int y2, const float4 color, float line_width2 ) 
 {
