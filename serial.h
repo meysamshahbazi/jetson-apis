@@ -24,6 +24,7 @@ public:
     Serial(const string& device , unsigned int baud);
     bool init();
     int getFd(){return fd};
+    virtual bool handleNewPacket();
 private:
     int fd;
     string device;
