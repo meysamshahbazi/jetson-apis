@@ -4,8 +4,19 @@
  * @brief Construct a new Serial:: Serial object
  * 
  */
-Serial::Serial(){
+Serial::Serial()
+{
+}
 
+/**
+ * @brief Construct a new Serial:: Serial object
+ * 
+ * @param device 
+ * @param baud 
+ */
+Serial::Serial(const string&  device , unsigned int baud)
+    : device{device}, baud{baud}
+{
 }
 
 /**
@@ -16,13 +27,11 @@ Serial::Serial(){
  * @return true 
  * @return false 
  */
-bool Serial::init(const string&  device , unsigned int baud)
+bool Serial::init()
 {
     fd = open(device.c_str(), O_RDWR);
-
     // Create new termios struct, we call it 'tty' for convention
     struct termios tty;
-
     // Read in existing settings, and handle any error
     if(tcgetattr(fd, &tty) != 0) {
         printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
@@ -60,8 +69,8 @@ bool Serial::init(const string&  device , unsigned int baud)
         printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
         return false;
     }  
-
     return true;
 }
+
 
 

@@ -21,9 +21,12 @@ using namespace std;
 class Serial {
 public:
     Serial();
-    bool init(const string& device , unsigned int baud);
+    Serial(const string& device , unsigned int baud);
+    bool init();
 private:
     int fd;
+    string device;
+    unsigned int baud;
 };
 
 #endif
