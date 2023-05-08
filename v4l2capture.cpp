@@ -1,9 +1,10 @@
 #include "v4l2capture.h"
 #include <chrono>
 #include "NvDrmRenderer.h"
+#include "cudaDeinterlace.h"
 
 // for test
-#include "cudaDraw.h"
+
 
 
 /**
@@ -348,14 +349,14 @@ void* V4L2Capture::func_drm_render(void* arg)
             printf("Failed to convert the buffer render_fd\n");
 
 
-        auto begin = std::chrono::steady_clock::now();
-        cup.setFd(full_hd_fd);
-        void* ptr = cup.get_img_ptr();
-        cudaDrawLine(ptr, ptr,1920, 1080, IMAGE_YUYV, 960, 5, 960, 1075, make_float4(255.0f,0.0f,0.0f,255.0f), 10 );
-        cup.freeImage();
+        // auto begin = std::chrono::steady_clock::now();
+        // cup.setFd(full_hd_fd);
+        // void* ptr = cup.get_img_ptr();
+        // // cudaDrawLine(ptr, ptr,1920, 1080, IMAGE_YUYV, 960, 5, 960, 1075, make_float4(255.0f,0.0f,0.0f,255.0f), 10 );
+        // cup.freeImage();
 
-        auto end = std::chrono::steady_clock::now();
-        std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+        // auto end = std::chrono::steady_clock::now();
+        // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
         
         if (-1 == NvBufferTransform(full_hd_fd, render_fd, &transParams)) // A10 ms delay
             printf("Failed to convert the buffer render_fd\n");

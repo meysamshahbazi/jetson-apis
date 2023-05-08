@@ -47,6 +47,4 @@ cudaError_t cudaDrawLine( T* image, size_t width, size_t height,
 }	
 
 
-
-cudaError_t cudaDeinterlace( void* input_cur, void* output, size_t width, size_t height);
 #endif
