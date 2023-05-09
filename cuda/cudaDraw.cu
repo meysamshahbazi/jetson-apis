@@ -147,6 +147,132 @@ cudaError_t cudaDrawLine( void* input, void* output, size_t width, size_t height
 	return cudaGetLastError();
 }
 
+//----------------------------------------------------------------------------
+// Rect drawing (a grid of threads is launched over the rect)
+//----------------------------------------------------------------------------
+template<typename T>
+__global__ void gpuDrawRect( T* img, int imgWidth, int imgHeight, int x0, int y0, int boxWidth, int boxHeight, const float4 color ) 
+{
+	const int box_x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int box_y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if( box_x >= boxWidth || box_y >= boxHeight )
+		return;
+
+	const int x = box_x + x0;
+	const int y = box_y + y0;
+
+	if( x >= imgWidth || y >= imgHeight || x < 0 || y < 0 )
+		return;
+
+	const int idx = y * imgWidth + x;
+	img[idx] = cudaAlphaBlend(img[idx], color);
+}
+
+template<typename T>
+__global__ void gpuDrawRectYUYV( T* img, int imgWidth, int imgHeight,
+int x0, int y0, int boxWidth, int boxHeight, const float4 color ) 
+{
+	const int box_x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int box_y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if( box_x >= boxWidth || box_y >= boxHeight )
+		return;
+
+	const int x = box_x + x0;
+	const int y = box_y + y0;
+
+	if( x >= imgWidth || y >= imgHeight || x < 0 || y < 0 )
+		return;
+
+	const int idx = y * imgWidth + x;
+	// img[idx] = cudaAlphaBlend(img[idx], color);
+		img[y*2*imgWidth+2*x] = static_cast<unsigned char>(color.x);
+		img[y*2*imgWidth+4*(x/2)+1] = static_cast<unsigned char>(color.y);
+		img[y*2*imgWidth+4*(x/2)+3] = static_cast<unsigned char>(color.z);
+}
+
+// cudaDrawRect
+cudaError_t cudaDrawRect( void* input, void* output, size_t width, size_t height, imageFormat format, int left, int top, int right, int bottom, const float4& color, const float4& line_color, float line_width )
+{
+	if( !input || !output || width == 0 || height == 0 )
+		return cudaErrorInvalidValue;
+
+	// if the input and output images are different, copy the input to the output
+	// this is because we only launch the kernel in the approximate area of the circle
+	if( input != output )
+		CUDA(cudaMemcpy(output, input, imageFormatSize(format, width, height), cudaMemcpyDeviceToDevice));
+		
+	// make sure the coordinates are ordered
+	if( left > right )
+	{
+		const int swap = left;
+		left = right;
+		right = swap;
+	}
+	
+	if( top > bottom )
+	{
+		const int swap = top;
+		top = bottom;
+		bottom = swap;
+	}
+	
+	const int boxWidth = right - left;
+	const int boxHeight = bottom - top;
+	
+	if( boxWidth <= 0 || boxHeight <= 0 )
+	{
+		LogError(LOG_CUDA "cudaDrawRect() -- rect had width/height <= 0  left=%i top=%i right=%i bottom=%i\n", left, top, right, bottom);
+		return cudaErrorInvalidValue;
+	}
+
+	// rect fill
+	if( color.w > 0 )
+	{
+		const dim3 blockDim(8, 8);
+		const dim3 gridDim(iDivUp(boxWidth,blockDim.x), iDivUp(boxHeight,blockDim.y));
+				
+		#define LAUNCH_DRAW_RECT(type) \
+			gpuDrawRect<type><<<gridDim, blockDim>>>((type*)output, width, height, left, top, boxWidth, boxHeight, color)
+		
+		if( format == IMAGE_RGB8 )
+			LAUNCH_DRAW_RECT(uchar3);
+		else if( format == IMAGE_RGBA8 )
+			LAUNCH_DRAW_RECT(uchar4);
+		else if( format == IMAGE_RGB32F )
+			LAUNCH_DRAW_RECT(float3); 
+		else if( format == IMAGE_RGBA32F )
+			LAUNCH_DRAW_RECT(float4);
+		else if( format == IMAGE_YUYV ){
+			uint8_t color_y = static_cast<uint8_t>(((int)(30 * color.x) + (int)(59 * color.y) + (int)(11 * color.z)) / 100);
+			uint8_t color_u = static_cast<uint8_t>(((int)(-17 * color.x) - (int)(33 * color.y) + (int)(50 * color.z) + 12800) / 100);
+			uint8_t color_v = static_cast<uint8_t>(((int)(50 * color.x) - (int)(42 * color.y) - (int)(8 * color.z) + 12800) / 100);
+			float4 color_yuyv = make_float4(color_y,color_u,color_v,0);
+			gpuDrawRectYUYV<<<gridDim, blockDim>>>((unsigned char*)output, width, height, left, top, boxWidth, boxHeight, color_yuyv);
+		}
+		else {
+			imageFormatErrorMsg(LOG_CUDA, "cudaDrawRect()", format);
+			return cudaErrorInvalidValue;
+		}
+	}
+	
+	// rect outline
+	if( line_color.w > 0 && line_width > 0 )
+	{
+		int lines[4][4] = {
+			{left, top, right, top},
+			{right, top, right, bottom},
+			{right, bottom, left, bottom},
+			{left, bottom, left, top}
+		};
+		
+		for( uint32_t n=0; n < 4; n++ )
+			CUDA(cudaDrawLine(output, width, height, format, lines[n][0], lines[n][1], lines[n][2], lines[n][3], line_color, line_width));
+	}
+	
+	return cudaGetLastError();
+}
 
 
 
