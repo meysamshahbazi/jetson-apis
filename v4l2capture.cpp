@@ -3,10 +3,6 @@
 #include "NvDrmRenderer.h"
 #include "cudaDeinterlace.h"
 
-// for test
-
-
-
 /**
  * @brief Construct a new V4L2Capture::V4L2Capture object
  * 
@@ -14,10 +10,20 @@
 V4L2Capture::V4L2Capture() 
 {
     devname = "/dev/video0";
-    width = 736;
-    height = 288;
+    width = 1920;
+    height = 1080;
     // the format V4L2_PIX_FMT_UYVY dosnt suppurted with cuGraphicsEGLRegisterImage yet!
     // https://forums.developer.nvidia.com/t/uyvy-for-cugraphicseglregisterimage-in-32-2-sdk/78634/9
+    pixfmt = V4L2_PIX_FMT_YUYV; 
+    cam_fd = -1;
+}
+
+V4L2Capture::V4L2Capture(const string&  devname,unsigned int width, unsigned int height)
+    : devname{devname},width{width},height{height}
+{
+    // the format V4L2_PIX_FMT_UYVY dosnt suppurted with cuGraphicsEGLRegisterImage yet!
+    // https://forums.developer.nvidia.com/t/uyvy-for-cugraphicseglregisterimage-in-32-2-sdk/78634/9
+    
     pixfmt = V4L2_PIX_FMT_YUYV; 
     cam_fd = -1;
 }
@@ -226,9 +232,9 @@ bool V4L2Capture::grab_frame()
 
 bool V4L2Capture::start_capture()
 {
-    
     pthread_create(&ptid_grab, NULL, (THREADFUNCPTR)&func_grab_thread, (void *)this );
     pthread_create(&ptid_drm, NULL, (THREADFUNCPTR)&func_drm_render, (void *)this );
+    return true;
 }
 
 

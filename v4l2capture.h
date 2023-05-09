@@ -16,8 +16,6 @@
 #endif
 #include "NvApplicationProfiler.h"
 
-
-
 using namespace std;
 
 const static map<unsigned int, NvBufferColorFormat> nv_color_fmt {
@@ -28,13 +26,12 @@ const static map<unsigned int, NvBufferColorFormat> nv_color_fmt {
         {V4L2_PIX_FMT_YVYU, NvBufferColorFormat_YVYU},
         {V4L2_PIX_FMT_GREY, NvBufferColorFormat_GRAY8},
         {V4L2_PIX_FMT_YUV420M, NvBufferColorFormat_YUV420},
-    };
+};
 
-
-class V4L2Capture{
-    
+class V4L2Capture {
 public:
     V4L2Capture();
+    V4L2Capture(string devname,unsigned int width, unsigned int height);
     ~V4L2Capture();
     bool initialize();
     bool prepare_buffers();
@@ -47,19 +44,21 @@ public:
     bool deinterlace();
     static void* func_grab_thread(void* arg);
     static void* func_drm_render(void* arg);
-private:
+protected:
     const static int V4L2_BUFFERS_NUM {4};
     string devname;
-    int cam_fd;
     unsigned int pixfmt;
     unsigned int width;
     unsigned int height;
+
+private:
+    int cam_fd;
     // this deinterlace fd used for possible deinterlacing
     // if video is progressive this contain last fd of g_buff 
     int deinterlace_buf_fd;
 
     /* User accessible pointer */
-    unsigned char * mm_start[V4L2_BUFFERS_NUM];
+    unsigned char* mm_start[V4L2_BUFFERS_NUM];
     /* Buffer length */
     unsigned int buff_size[V4L2_BUFFERS_NUM];
     /* File descriptor of NvBuffer */
@@ -74,8 +73,9 @@ private:
     // for deinterlace 
     CudaProcess cup_cur;
     CudaProcess cup_de;
-    ///------------------------------------------------------------------------
+    //------------------------------------------------------------------------
     // for debug only !
 };
 
 #endif
+
