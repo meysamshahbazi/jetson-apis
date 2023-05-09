@@ -32,12 +32,14 @@ class V4L2Capture {
 public:
     V4L2Capture();
     V4L2Capture(string devname,unsigned int width, unsigned int height);
+    V4L2Capture(string devname);
     ~V4L2Capture();
-    bool initialize();
+    bool initialize(unsigned int width, unsigned int height);
     bool prepare_buffers();
     bool request_camera_buff();
     bool isInterleave();
     bool start_stream();
+    bool stop_stream();
     bool start_capture();
     bool grab_frame();
     bool TestCapture();
@@ -50,8 +52,6 @@ protected:
     unsigned int pixfmt;
     unsigned int width;
     unsigned int height;
-
-private:
     int cam_fd;
     // this deinterlace fd used for possible deinterlacing
     // if video is progressive this contain last fd of g_buff 

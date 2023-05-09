@@ -23,10 +23,25 @@ V4L2Capture::V4L2Capture(const string&  devname,unsigned int width, unsigned int
 {
     // the format V4L2_PIX_FMT_UYVY dosnt suppurted with cuGraphicsEGLRegisterImage yet!
     // https://forums.developer.nvidia.com/t/uyvy-for-cugraphicseglregisterimage-in-32-2-sdk/78634/9
-    
+
     pixfmt = V4L2_PIX_FMT_YUYV; 
     cam_fd = -1;
 }
+
+/**
+ * @brief Construct a new V4L2Capture::V4L2Capture object
+ * 
+ * @param devname 
+ */
+V4L2Capture::V4L2Capture(const string&  devname)
+    : devname{devname}
+{
+    // the format V4L2_PIX_FMT_UYVY dosnt suppurted with cuGraphicsEGLRegisterImage yet!
+    // https://forums.developer.nvidia.com/t/uyvy-for-cugraphicseglregisterimage-in-32-2-sdk/78634/9
+    pixfmt = V4L2_PIX_FMT_YUYV; 
+    cam_fd = -1;
+}
+
 
 /**
  * @brief Destroy the V4L2Capture::V4L2Capture object
@@ -41,14 +56,19 @@ V4L2Capture::~V4L2Capture() {
     }
 }
 
+
+
+
 /**
  * @brief 
  * 
  * @return true 
  * @return false 
  */
-bool V4L2Capture::initialize()
+bool V4L2Capture::initialize(unsigned int width, unsigned int height)
 {
+    this->width = width;
+    this->height = height;
     // open the camera device 
     cam_fd = open(devname.c_str(), O_RDWR | O_NONBLOCK);
     if (cam_fd == -1){
@@ -209,6 +229,27 @@ bool V4L2Capture::request_camera_buff()
 }
 
 
+bool stop_stream()
+{
+    enum v4l2_buf_type type;
+    // Stop v4l2 streaming 
+    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    int r;
+    do {
+        r = ioctl(cam_fd, VIDIOC_STREAMOFF, &type);
+    } while (-1 == r && ( EINTR == errno  ||  EBUSY == errno ) );
+
+    
+    // if (xioctl(cam_fd, VIDIOC_STREAMOFF, &type))
+    //     ERROR_RETURN("Failed to stop streaming: %s (%d) %d",
+    //             strerror(errno), errno,cam_fd);
+
+    cout<<"Camera video streaming off ..."<<endl;
+    return true;
+}
+
+
+
 bool V4L2Capture::grab_frame()
 {
     /* Dequeue a camera buff */
@@ -272,8 +313,6 @@ void* V4L2Capture::func_grab_thread(void* arg)
         poll(fds, 1, 5000);// TODO add handle return value of poll
         if(fds[0].revents & POLLIN ) {
             if(!(thiz->grab_frame() )) continue;
-            // DO it with seprate function deinterlaceIfNeed
-            // thiz->deinterlace_buf_fd = thiz->dmabuff_fd[thiz->v4l2_buf.index];           
             thiz->deinterlace();
             /* Enqueue camera buffer back to driver */    
             if(xioctl(thiz->cam_fd, VIDIOC_QBUF, &thiz->v4l2_buf) < 0) {
