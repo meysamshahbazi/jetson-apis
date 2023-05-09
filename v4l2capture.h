@@ -31,8 +31,8 @@ const static map<unsigned int, NvBufferColorFormat> nv_color_fmt {
 class V4L2Capture {
 public:
     V4L2Capture();
-    V4L2Capture(string devname,unsigned int width, unsigned int height);
-    V4L2Capture(string devname);
+    V4L2Capture(const string& devname,unsigned int width, unsigned int height);
+    V4L2Capture(const string& devname);
     ~V4L2Capture();
     bool initialize(unsigned int width, unsigned int height);
     bool prepare_buffers();
@@ -57,6 +57,7 @@ protected:
     // if video is progressive this contain last fd of g_buff 
     int deinterlace_buf_fd;
 
+    
     /* User accessible pointer */
     unsigned char* mm_start[V4L2_BUFFERS_NUM];
     /* Buffer length */

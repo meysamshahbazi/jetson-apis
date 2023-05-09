@@ -229,7 +229,7 @@ bool V4L2Capture::request_camera_buff()
 }
 
 
-bool stop_stream()
+bool V4L2Capture::stop_stream()
 {
     enum v4l2_buf_type type;
     // Stop v4l2 streaming 
