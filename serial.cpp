@@ -72,5 +72,28 @@ bool Serial::init()
     return true;
 }
 
+/**
+ * @brief 
+ * 
+ * @param len 
+ * @param buf 
+ * @return int 
+ */
+int Serial::read_with_len(size_t len, unsigned char* buf)
+{
+    ssize_t ret;
+
+    while (len != 0 && (ret = read(fd, buf, len)) != 0) {
+        if (ret == -1) {
+            if (errno == EINTR)
+                continue;
+            perror ("read");
+            break;
+        }
+        len -= ret;
+        buf += ret;
+    }
+}
+
 
 

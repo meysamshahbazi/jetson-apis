@@ -44,6 +44,7 @@ public:
     bool grab_frame();
     bool TestCapture();
     bool deinterlace();
+    int getFd();
     static void* func_grab_thread(void* arg);
     static void* func_drm_render(void* arg);
 protected:
@@ -57,6 +58,7 @@ protected:
     // if video is progressive this contain last fd of g_buff 
     int deinterlace_buf_fd;
 
+    int out_fd;
     
     /* User accessible pointer */
     unsigned char* mm_start[V4L2_BUFFERS_NUM];

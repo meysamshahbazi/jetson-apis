@@ -54,6 +54,11 @@ void* CudaProcess::get_img_ptr()
     return eglFrame.frame.pPitch[0];
 }
 
+int CudaProcess::getPitch()
+{
+    return eglFrame.pitch;
+}
+
 void CudaProcess::freeImage()
 {
     status = cuCtxSynchronize();

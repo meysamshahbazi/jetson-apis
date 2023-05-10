@@ -21,6 +21,7 @@ public:
     void* get_img_ptr();
     void freeImage();
     void setFd(int fd);
+    int getPitch();
 private:
     int fd;
     EGLImageKHR image;

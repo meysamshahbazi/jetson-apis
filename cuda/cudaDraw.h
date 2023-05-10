@@ -64,7 +64,8 @@ cudaError_t cudaDrawLine( T* image, size_t width, size_t height,
  * @param line_width 
  * @return cudaError_t 
  */
-cudaError_t cudaDrawRect( void* input, void* output, size_t width, size_t height, imageFormat format, int left, int top, int right, int bottom, const float4& color, const float4& line_color, float line_width );
-
+cudaError_t cudaDrawRect( void* input, void* output, size_t width, size_t height, imageFormat format, 
+					 int left, int top, int right, int bottom, const float4& color, 
+					 const float4& line_color=make_float4(0,0,0,0), float line_width=1.0f );
 
 #endif

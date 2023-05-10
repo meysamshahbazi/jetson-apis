@@ -42,7 +42,6 @@ V4L2Capture::V4L2Capture(const string&  devname)
     cam_fd = -1;
 }
 
-
 /**
  * @brief Destroy the V4L2Capture::V4L2Capture object
  * 
@@ -55,9 +54,6 @@ V4L2Capture::~V4L2Capture() {
             NvBufferDestroy(dmabuff_fd[i]);
     }
 }
-
-
-
 
 /**
  * @brief 
@@ -228,7 +224,6 @@ bool V4L2Capture::request_camera_buff()
     return true;
 }
 
-
 bool V4L2Capture::stop_stream()
 {
     enum v4l2_buf_type type;
@@ -247,8 +242,6 @@ bool V4L2Capture::stop_stream()
     cout<<"Camera video streaming off ..."<<endl;
     return true;
 }
-
-
 
 bool V4L2Capture::grab_frame()
 {
@@ -269,8 +262,12 @@ bool V4L2Capture::grab_frame()
     return true;
 }
 
-
-
+/**
+ * @brief 
+ * 
+ * @return true 
+ * @return false 
+ */
 bool V4L2Capture::start_capture()
 {
     pthread_create(&ptid_grab, NULL, (THREADFUNCPTR)&func_grab_thread, (void *)this );
@@ -278,25 +275,28 @@ bool V4L2Capture::start_capture()
     return true;
 }
 
-
+/**
+ * @brief 
+ * 
+ * @return true 
+ * @return false 
+ */
 bool V4L2Capture::deinterlace()
 {
     if(!isInterleave()){
-        deinterlace_buf_fd = dmabuff_fd[v4l2_buf.index]; 
+        out_fd = dmabuff_fd[v4l2_buf.index]; 
         return true;
-    }
-    // 
+    } 
     cup_cur.setFd(dmabuff_fd[v4l2_buf.index]);
     void* ptr_cur = cup_cur.get_img_ptr();
     cup_de.setFd(deinterlace_buf_fd);
     void* ptr_de = cup_de.get_img_ptr();
     
     cudaDeinterlace( ptr_cur, ptr_de,736, 576);
-    
+    out_fd = deinterlace_buf_fd;
     cup_cur.freeImage();
     cup_de.freeImage();
     return true;
-
 }
 void* V4L2Capture::func_grab_thread(void* arg)
 {
@@ -325,6 +325,10 @@ void* V4L2Capture::func_grab_thread(void* arg)
     pthread_exit(NULL);
 }
 
+
+int V4L2Capture::getFd(){
+    return out_fd;
+}
 void* V4L2Capture::func_drm_render(void* arg)
 {
     pthread_detach(pthread_self());
@@ -389,7 +393,7 @@ void* V4L2Capture::func_drm_render(void* arg)
         }
 
         
-        if (-1 == NvBufferTransform(thiz->deinterlace_buf_fd, full_hd_fd, &transParams)) // A10 ms delay
+        if (-1 == NvBufferTransform(thiz->out_fd, full_hd_fd, &transParams)) // A10 ms delay
             printf("Failed to convert the buffer render_fd\n");
 
 

@@ -23,7 +23,8 @@ public:
     Serial();
     Serial(const string& device , unsigned int baud);
     bool init();
-    // virtual bool handleNewPacket();
+    int read_with_len(size_t len,unsigned char *buf);
+    
 protected:
     int fd;
     string device;
