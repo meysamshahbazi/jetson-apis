@@ -25,13 +25,13 @@
 #include "cudaOverlay.h"
 #include "cudaMappedMemory.h"
 
-#include "imageIO.h"
+// #include "imageIO.h"
 #include "filesystem.h"
 #include "logging.h"
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "../image/stb/stb_truetype.h"
+#include "stb_truetype.h"
 #include "cudaAlphaBlend.cuh"
 
 

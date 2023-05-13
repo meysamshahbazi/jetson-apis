@@ -79,6 +79,9 @@ enum imageFormat
 	IMAGE_GRAY8,					/**< uint8 grayscale  (`'gray8'`)   */
 	IMAGE_GRAY32F,					/**< float grayscale  (`'gray32f'`) */
 
+	// my added format 
+	IMAGE_ABGR8,
+
 	// extras
 	IMAGE_COUNT,					/**< The number of image formats */
 	IMAGE_UNKNOWN=999,				/**< Unknown/undefined format */
@@ -241,4 +244,5 @@ template<> struct imageFormatType<IMAGE_RGBA32F> { typedef float Base; typedef f
 
 
 #endif
+
 
